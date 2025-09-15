@@ -135,7 +135,7 @@
 		</style>
 	</head>
 	<body>
-		<header>📷 Escáner de códigos EAN</header>
+		<header>Escáner de códigos EAN</header>
 
 		<div id="scanner"></div>
 
@@ -157,6 +157,7 @@
 			const lista = document.getElementById('lista');
 			const contador = document.getElementById('contador');
 			const codigos = new Set();
+			let ultimaLectura = ''; // para evitar que repita confirm varias veces seguidas
 
 			// Inicializar QuaggaJS
 			Quagga.init(
@@ -182,23 +183,35 @@
 			// Detectar códigos
 			Quagga.onDetected(data => {
 				const code = data.codeResult.code;
+
+				// evitar repetición inmediata del mismo código
+				if (code === ultimaLectura) return;
+				ultimaLectura = code;
+
 				if (!codigos.has(code)) {
-					codigos.add(code);
+					const confirmar = confirm(
+						`¿Quieres añadir el código ${code} a la lista?`
+					);
+					if (confirmar) {
+						codigos.add(code);
 
-					const li = document.createElement('li');
-					li.textContent = code;
+						const li = document.createElement('li');
+						li.textContent = code;
 
-					// Doble clic para eliminar código
-					li.addEventListener('dblclick', () => {
-						codigos.delete(code);
-						lista.removeChild(li);
+						// Doble clic para eliminar código
+						li.addEventListener('dblclick', () => {
+							codigos.delete(code);
+							lista.removeChild(li);
+							contador.textContent = codigos.size;
+							console.log('Código eliminado:', code);
+						});
+
+						lista.appendChild(li);
 						contador.textContent = codigos.size;
-						console.log('Código eliminado:', code);
-					});
-
-					lista.appendChild(li);
-					contador.textContent = codigos.size;
-					console.log('Código detectado:', code);
+						console.log('Código añadido:', code);
+					} else {
+						console.log('Código rechazado:', code);
+					}
 				}
 			});
 
