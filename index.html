@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+	<head>
+		<meta charset="UTF-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1.0"
+		/>
+		<title>Escáner EAN - Móvil</title>
+		<script src="https://unpkg.com/quagga/dist/quagga.min.js"></script>
+		<style>
+			body {
+				font-family: Arial, sans-serif;
+				margin: 0;
+				background: #f9fafb;
+				color: #333;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+			}
+
+			header {
+				width: 100%;
+				background: #007bff;
+				color: white;
+				text-align: center;
+				padding: 1rem;
+				font-size: 1.2rem;
+			}
+
+			#scanner {
+				width: 100%;
+				max-width: 480px;
+				height: 300px;
+				background: black;
+			}
+
+			.content {
+				width: 100%;
+				max-width: 480px;
+				padding: 1rem;
+			}
+
+			h3 {
+				margin-top: 1rem;
+				margin-bottom: 0.5rem;
+				font-size: 1.1rem;
+			}
+
+			ul {
+				list-style: none;
+				padding: 0;
+				max-height: 200px;
+				overflow-y: auto;
+				background: white;
+				border: 1px solid #ddd;
+				border-radius: 8px;
+			}
+
+			li {
+				padding: 10px;
+				border-bottom: 1px solid #eee;
+				font-size: 1rem;
+			}
+
+			li:last-child {
+				border-bottom: none;
+			}
+
+			.btn-group {
+				display: flex;
+				justify-content: space-around;
+				margin-top: 1rem;
+				gap: 10px;
+			}
+
+			button {
+				flex: 1;
+				padding: 12px;
+				font-size: 1rem;
+				border: none;
+				border-radius: 6px;
+				cursor: pointer;
+				font-weight: bold;
+				transition: background 0.2s;
+			}
+
+			button:active {
+				transform: scale(0.97);
+			}
+
+			#exportar {
+				background: #28a745;
+				color: white;
+			}
+			#exportar:hover {
+				background: #218838;
+			}
+
+			#reset {
+				background: #dc3545;
+				color: white;
+			}
+			#reset:hover {
+				background: #c82333;
+			}
+
+			.counter {
+				margin-top: 0.5rem;
+				font-size: 0.9rem;
+				color: #555;
+			}
+		</style>
+	</head>
+	<body>
+		<header>📷 Escáner de códigos EAN</header>
+
+		<div id="scanner"></div>
+
+		<div class="content">
+			<h3>Lista de códigos</h3>
+			<p class="counter">
+				Códigos escaneados:
+				<span id="contador">0</span>
+			</p>
+			<ul id="lista"></ul>
+
+			<div class="btn-group">
+				<button id="exportar">⬇ Exportar CSV</button>
+				<button id="reset">🔄 Reiniciar</button>
+			</div>
+		</div>
+
+		<script>
+			const lista = document.getElementById('lista');
+			const contador = document.getElementById('contador');
+			const codigos = new Set();
+
+			// Inicializar QuaggaJS
+			Quagga.init(
+				{
+					inputStream: {
+						type: 'LiveStream',
+						constraints: { facingMode: 'environment' },
+						target: document.querySelector('#scanner'),
+					},
+					decoder: {
+						readers: ['ean_reader', 'ean_8_reader', 'upc_reader'],
+					},
+				},
+				function (err) {
+					if (err) {
+						console.error(err);
+						return;
+					}
+					Quagga.start();
+				}
+			);
+
+			// Detectar códigos
+			Quagga.onDetected(data => {
+				const code = data.codeResult.code;
+				if (!codigos.has(code)) {
+					codigos.add(code);
+					const li = document.createElement('li');
+					li.textContent = code;
+					lista.appendChild(li);
+					contador.textContent = codigos.size;
+					console.log('Código detectado:', code);
+				}
+			});
+
+			// Botón reiniciar lista
+			document.getElementById('reset').addEventListener('click', () => {
+				codigos.clear();
+				lista.innerHTML = '';
+				contador.textContent = '0';
+				console.log('Lista reiniciada');
+			});
+
+			// Botón exportar CSV
+			document.getElementById('exportar').addEventListener('click', () => {
+				const eansArray = Array.from(codigos);
+				if (eansArray.length === 0) {
+					alert('No hay códigos para exportar');
+					return;
+				}
+
+				const csvContent = eansArray.join('\n');
+				const blob = new Blob([csvContent], { type: 'text/csv' });
+				const link = document.createElement('a');
+				const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+				link.download = `EANs_${timestamp}.csv`;
+				link.href = URL.createObjectURL(blob);
+				link.click();
+
+				alert(
+					'CSV generado. Puedes subirlo a Google Drive o abrirlo en tu PC.'
+				);
+			});
+		</script>
+	</body>
+</html>
