@@ -156,8 +156,8 @@
 		<script>
 			const lista = document.getElementById('lista');
 			const contador = document.getElementById('contador');
-			const codigos = new Set();
-			let ultimaLectura = ''; // para evitar que repita confirm varias veces seguidas
+			const codigos = []; // ahora será un array de objetos {codigo, unidades}
+			let ultimaLectura = '';
 
 			// Inicializar QuaggaJS
 			Quagga.init(
@@ -184,40 +184,53 @@
 			Quagga.onDetected(data => {
 				const code = data.codeResult.code;
 
-				// evitar repetición inmediata del mismo código
+				// evitar repetición inmediata
 				if (code === ultimaLectura) return;
 				ultimaLectura = code;
 
-				if (!codigos.has(code)) {
-					const confirmar = confirm(
-						`¿Quieres añadir el código ${code} a la lista?`
+				// preguntar si se quiere añadir
+				const confirmar = confirm(
+					`¿Quieres añadir el código ${code} a la lista?`
+				);
+				if (confirmar) {
+					let unidades = parseInt(
+						prompt(`¿Cuántas unidades del artículo ${code}?`),
+						10
 					);
-					if (confirmar) {
-						codigos.add(code);
 
-						const li = document.createElement('li');
-						li.textContent = code;
-
-						// Doble clic para eliminar código
-						li.addEventListener('dblclick', () => {
-							codigos.delete(code);
-							lista.removeChild(li);
-							contador.textContent = codigos.size;
-							console.log('Código eliminado:', code);
-						});
-
-						lista.appendChild(li);
-						contador.textContent = codigos.size;
-						console.log('Código añadido:', code);
-					} else {
-						console.log('Código rechazado:', code);
+					if (isNaN(unidades) || unidades <= 0) {
+						alert('Número de unidades no válido. No se añadirá.');
+						return;
 					}
+
+					// añadir a la lista
+					codigos.push({ codigo: code, unidades });
+
+					const li = document.createElement('li');
+					li.textContent = `${code} - Unidades: ${unidades}`;
+
+					// Doble clic para eliminar
+					li.addEventListener('dblclick', () => {
+						const index = codigos.findIndex(item => item.codigo === code);
+						if (index > -1) {
+							codigos.splice(index, 1);
+							lista.removeChild(li);
+							contador.textContent = codigos.length;
+							console.log('Código eliminado:', code);
+						}
+					});
+
+					lista.appendChild(li);
+					contador.textContent = codigos.length;
+					console.log('Código añadido:', code, 'Unidades:', unidades);
+				} else {
+					console.log('Código rechazado:', code);
 				}
 			});
 
 			// Botón reiniciar lista
 			document.getElementById('reset').addEventListener('click', () => {
-				codigos.clear();
+				codigos.length = 0;
 				lista.innerHTML = '';
 				contador.textContent = '0';
 				console.log('Lista reiniciada');
@@ -225,13 +238,17 @@
 
 			// Botón exportar CSV
 			document.getElementById('exportar').addEventListener('click', () => {
-				const eansArray = Array.from(codigos);
-				if (eansArray.length === 0) {
+				if (codigos.length === 0) {
 					alert('No hay códigos para exportar');
 					return;
 				}
 
-				const csvContent = eansArray.join('\n');
+				// Encabezado CSV
+				let csvContent = 'Código,Unidades\n';
+				codigos.forEach(item => {
+					csvContent += `${item.codigo},${item.unidades}\n`;
+				});
+
 				const blob = new Blob([csvContent], { type: 'text/csv' });
 				const link = document.createElement('a');
 				const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -239,9 +256,7 @@
 				link.href = URL.createObjectURL(blob);
 				link.click();
 
-				alert(
-					'CSV generado. Puedes subirlo a Google Drive o abrirlo en tu PC.'
-				);
+				alert('CSV generado con códigos y unidades.');
 			});
 		</script>
 	</body>
