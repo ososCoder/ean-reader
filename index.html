@@ -8,6 +8,17 @@
 		/>
 		<title>Escáner EAN - Móvil</title>
 		<script src="https://unpkg.com/quagga/dist/quagga.min.js"></script>
+
+		<!-- Manifest PWA -->
+		<link
+			rel="manifest"
+			href="manifest.json"
+		/>
+		<meta
+			name="theme-color"
+			content="#007bff"
+		/>
+
 		<style>
 			body {
 				font-family: Arial, sans-serif;
@@ -188,7 +199,6 @@
 				if (code === ultimaLectura) return;
 				ultimaLectura = code;
 
-				// preguntar si se quiere añadir
 				const confirmar = confirm(
 					`¿Quieres añadir el código ${code} a la lista?`
 				);
@@ -203,7 +213,6 @@
 						return;
 					}
 
-					// añadir a la lista
 					codigos.push({ codigo: code, unidades });
 
 					const li = document.createElement('li');
@@ -216,15 +225,11 @@
 							codigos.splice(index, 1);
 							lista.removeChild(li);
 							contador.textContent = codigos.length;
-							console.log('Código eliminado:', code);
 						}
 					});
 
 					lista.appendChild(li);
 					contador.textContent = codigos.length;
-					console.log('Código añadido:', code, 'Unidades:', unidades);
-				} else {
-					console.log('Código rechazado:', code);
 				}
 			});
 
@@ -233,7 +238,6 @@
 				codigos.length = 0;
 				lista.innerHTML = '';
 				contador.textContent = '0';
-				console.log('Lista reiniciada');
 			});
 
 			// Botón exportar CSV
@@ -243,7 +247,6 @@
 					return;
 				}
 
-				// Encabezado CSV
 				let csvContent = 'Código,Unidades\n';
 				codigos.forEach(item => {
 					csvContent += `${item.codigo},${item.unidades}\n`;
@@ -255,9 +258,15 @@
 				link.download = `EANs_${timestamp}.csv`;
 				link.href = URL.createObjectURL(blob);
 				link.click();
-
-				alert('CSV generado con códigos y unidades.');
 			});
+
+			// Registrar service worker
+			if ('serviceWorker' in navigator) {
+				navigator.serviceWorker
+					.register('service-worker.js')
+					.then(() => console.log('Service Worker registrado'))
+					.catch(err => console.error('Error registrando SW:', err));
+			}
 		</script>
 	</body>
 </html>
